@@ -13,6 +13,12 @@ pub enum EPlayer{
     Circle,
 }
 
+pub enum EGameResult{
+    None,
+    Win,
+    Draw,
+}
+
 impl fmt::Display for EPlayer {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

@@ -1,6 +1,8 @@
 use std::cmp::PartialEq;
 use console::{Key, Term};
 use crate::enums;
+use crate::enums::EGameResult;
+
 const BOARD_SIZE: usize = 3;
 struct CCursor{
     x: u8,
@@ -11,6 +13,7 @@ pub struct CTicTacToe{
     cursor: CCursor,
     current_player: enums::EPlayer,
     run_game: bool,
+    run_board: bool,
     stdout: Term,
 }
 
@@ -21,6 +24,7 @@ impl CTicTacToe {
             cursor: CCursor{x: 0, y: 0},
             current_player: enums::EPlayer::Cross,
             run_game: false,
+            run_board: false,
             stdout: Term::buffered_stdout(),
         }
     }
@@ -29,11 +33,17 @@ impl CTicTacToe {
         self.print_hello();
         self.stdout.read_key().unwrap();
         self.run_game = true;
-        self.play_board();
+        self.run_board = true;
+        while self.run_game {
+            self.play_board();
+
+            self.ask_for_next_board();
+        }
+
     }
 
     fn play_board(&mut self) {
-        while self.run_game {
+        while self.run_board {
             // Print board
             self.print_board();
 
@@ -41,13 +51,17 @@ impl CTicTacToe {
             self.scan_player_input();
         }
     }
-    fn end_board(&mut self) {
-        self.run_game = false;
-        self.print_end_screen();
+    fn end_board(&mut self, result: enums::EGameResult) {
+        self.run_board = false;
+        self.print_board();
+        self.print_end_screen(result);
+    }
+
+    fn ask_for_next_board(&mut self) {
         if let Ok(character) = self.stdout.read_key() {
             match character {
                 Key::Enter => self.reset_board(),
-                _ => { }
+                _ => self.run_game = false,
             }
         }
     }
@@ -61,10 +75,9 @@ impl CTicTacToe {
                 self.board[row_idx][col_idx] = enums::ESymbol::None;
             }
         }
-        self.run_game = true;
 
-        // Play board again
-        self.play_board();
+        // Run new board
+        self.run_board = true;
     }
 
     fn print_hello(&self) {
@@ -75,9 +88,13 @@ impl CTicTacToe {
 
     }
 
-    fn print_end_screen (&self){
+    fn print_end_screen (&self, result: enums::EGameResult){
         println!("");
-        println!("{} won !", self.current_player);
+        match result {
+            enums::EGameResult::Win => println!("{} won !", self.current_player),
+            enums::EGameResult::Draw => println!("Draw!"),
+            enums::EGameResult::None => println!("How do you even got there?"),
+        }
         println!("Press enter to play again.");
         println!("Press any other key to quit.");
     }
@@ -112,7 +129,10 @@ impl CTicTacToe {
                 Key::Char('a') => self.move_left(),
                 Key::Char('s') => self.move_down(),
                 Key::Char('d') => self.move_right(),
-                Key::Char('x') => self.run_game = false,
+                Key::Char('x') => {
+                    self.run_game = false;
+                    self.run_board = false;
+                },
                 Key::ArrowUp => self.move_up(),
                 Key::ArrowLeft => self.move_left(),
                 Key::ArrowDown => self.move_down(),
@@ -133,7 +153,10 @@ impl CTicTacToe {
             }
 
             if self.determine_win() {
-                self.end_board();
+                self.end_board(enums::EGameResult::Win);
+            }
+            else if self.check_draw(){
+                self.end_board(enums::EGameResult::Draw);
             }
             else{
                 self.next_player();
@@ -169,6 +192,19 @@ impl CTicTacToe {
                 row_sum == BOARD_SIZE as u8 ||
                 diagonal_sum == BOARD_SIZE as u8 ||
                 antidiagonal_sum == BOARD_SIZE as u8
+    }
+
+    fn check_draw(&self) -> bool {
+        let mut draw= true;
+        'outer: for row_idx in 0..BOARD_SIZE {
+            for col_idx in 0..BOARD_SIZE {
+                if self.board[row_idx][col_idx] == enums::ESymbol::None {
+                    draw = false;
+                    break 'outer;
+                }
+            }
+        }
+        draw // Return
     }
 
     fn clear_console(&self) {
