@@ -1,3 +1,7 @@
+mod enums;
+mod TicTacToe;
+
 fn main() {
-    println!("Hello, world!");
+    let mut game = TicTacToe::CTicTacToe::new();
+    game.play();
 }
