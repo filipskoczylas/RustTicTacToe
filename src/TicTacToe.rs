@@ -1,6 +1,6 @@
+use console::{Key, Term};
 use crate::enums;
 const BOARD_SIZE: usize = 3;
-const BOARD_REFRESH_SIZE : u64 = 333;
 struct CCursor{
     x: u8,
     y: u8
@@ -8,8 +8,8 @@ struct CCursor{
 pub struct CTicTacToe{
     board: [[enums::ESymbol; BOARD_SIZE]; BOARD_SIZE],
     cursor: CCursor,
-    cursor_state: bool,
     current_player: enums::EPlayer,
+    run_game: bool,
 }
 
 impl CTicTacToe {
@@ -17,15 +17,16 @@ impl CTicTacToe {
         CTicTacToe{
             board: [[enums::ESymbol::None; 3]; 3],
             cursor: CCursor{x: 0, y: 0},
-            cursor_state: true,
             current_player: enums::EPlayer::Cross,
+            run_game: true,
         }
     }
 
     pub fn play(&mut self) {
-        while (true){
+        let stdout = Term::buffered_stdout();
+        while (self.run_game){
+            self.scan_player_input(&stdout);
             self.print_board();
-            std::thread::sleep(std::time::Duration::from_millis(BOARD_REFRESH_SIZE));
         }
     }
 
@@ -36,13 +37,9 @@ impl CTicTacToe {
         println!("Press enter to play.");
     }
 
-    fn print_have_fun(&self){
-        println!("Have fun!");
-    }
-
     fn print_play_again(&self){
         println!("Press enter to play again.");
-        println!("Press esc to quit.");
+        println!("Press X to quit.");
     }
 
     fn print_board(&mut self) {
@@ -58,20 +55,36 @@ impl CTicTacToe {
 
                 // If the cursor is at this position, print only if it is time to blink
                 if self.cursor.x == col_idx as u8 && self.cursor.y == row_idx as u8 {
-                    if self.cursor_state {
-                        print!("{} ", symbol);
-                    }
-                    else {
-                        print!("  ");
-                    }
+                    print!("[{}]", symbol);
                 }
                 else {
-                    print!("{} ", symbol);
+                    print!(" {} ", symbol);
                 }
             }
             println!(); // Newline after each row
         }
-        self.cursor_state = !self.cursor_state;
+    }
+
+    fn scan_player_input(& mut self, stdout: &Term){
+        if let Ok(character) = stdout.read_key() {
+            match character {
+                Key::Char('w') => self.move_up(),
+                Key::Char('a') => self.move_left(),
+                Key::Char('s') => self.move_down(),
+                Key::Char('d') => self.move_right(),
+                Key::Char('x') => self.run_game = false,
+                Key::ArrowUp => self.move_up(),
+                Key::ArrowLeft => self.move_left(),
+                Key::ArrowDown => self.move_down(),
+                Key::ArrowRight => self.move_right(),
+                Key::Enter => self.place_mark(),
+                _ => { }
+            }
+        }
+    }
+
+    fn place_mark(&mut self){
+
     }
 
     fn clear_console(&self) {
@@ -86,6 +99,30 @@ impl CTicTacToe {
             enums::EPlayer::Circle => {
                 self.current_player = enums::EPlayer::Cross;
             }
+        }
+    }
+
+    fn move_up(&mut self){
+        if self.cursor.y > 0{
+            self.cursor.y -= 1;
+        }
+    }
+
+    fn move_down(&mut self){
+        if self.cursor.y < (BOARD_SIZE - 1) as u8 {
+            self.cursor.y += 1;
+        }
+    }
+
+    fn move_left(&mut self){
+        if self.cursor.x > 0 {
+            self.cursor.x -= 1;
+        }
+    }
+
+    fn move_right(&mut self){
+        if self.cursor.x < (BOARD_SIZE - 1) as u8 {
+            self.cursor.x += 1;
         }
     }
 }
